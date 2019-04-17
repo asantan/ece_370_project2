@@ -115,8 +115,8 @@ void imuSetup(){
 void irsetup(){
   pinMode(ir_1, INPUT);
   pinMode(ir_2, INPUT);
-  attachInterrupt(digitalPinToInterrupt(ir_1), tickInterrupt, RISING);
-  attachInterrupt(digitalPinToInterrupt(ir_2), tickInterrupt, RISING);
+  attachInterrupt(digitalPinToInterrupt(ir_1), left_tick, RISING);
+  attachInterrupt(digitalPinToInterrupt(ir_2), right_tick, RISING);
 }
 
 void motorsetup(){
@@ -157,53 +157,66 @@ void readUDP(){
     
   }
 }
-void tickInterrupt()
-{
-  //ir1 is MSB
-  tick = millis();
-  int ir1 = digitalRead(ir_1);
-  int ir2 = digitalRead(ir_2); 
-  Serial.println("IR 1: " + String(ir1));
-  Serial.println("IR 2: " + String(ir2));
-  if(ir1 == '1' && ir2 == '1') state = BOTH;
-  else if(ir1 == 1 && ir2 == 0) state = TOP;
-  else if(ir1 == 0 && ir2 == 1) state = BOTTOM; 
-  else state = NONE; 
+//calculates distance covered by left wheel
+void left_tick(){ //tick detected
+  float local_phi = -delta_phi_per_tick;
+  float delta_x = (baseline/2)*sin(local_phi);         //x and y are change along origin
+  float delta_y = (baseline/2) - (baseline/2)*cos(local_phi); //sign of phi is important 
+  float delta_x_prime = delta_x*cos(phi_global) + delta_y*sin(phi_global);
+  float delta_y_prime = delta_x*sin(phi_global) + delta_y*cos(phi_global);
+  matrix_l(); //matrix method
+}
 
-  /*switch(state){ //determine direction from previous state
-    tick = millis();
-    case NONE:
-      if(lastState == TOP) currentDirection = CLOCKWISE; 
-      else currentDirection = COUNTERCLOCKWISE; 
-      break;
-    case TOP:
-      if(lastState == BOTH) currentDirection = CLOCKWISE; 
-      else currentDirection = COUNTERCLOCKWISE;
-   
-      break; 
-    case BOTTOM:
-      if(lastState == NONE) currentDirection = CLOCKWISE; 
-      else currentDirection = COUNTERCLOCKWISE;  
-      break;
-    case BOTH: 
-      if(lastState == BOTTOM) currentDirection = CLOCKWISE; 
-      else currentDirection = COUNTERCLOCKWISE; 
-      break; 
+//calculates distance covered by right weel
+void right_tick(){
+  float local_phi = delta_phi_per_tick;
+  float delta_x = (baseline/2)*sin(local_phi);         //x and y are change along origin
+  float delta_y = (baseline/2) - (baseline/2)*cos(local_phi); //sign of phi is important 
+  float delta_x_prime = delta_x*cos(phi_global) + delta_y*sin(phi_global);
+  float delta_y_prime = delta_x*sin(phi_global) + delta_y*cos(phi_global);
+  rise_r(local_phi, delta_x_prime, delta_y_prime); //analytical method
+  matrix_r();//matrix method
+}
+
+/* 
+ * begin section for analytical method of obtaining x, y, theta_z 
+ */
+
+//update global position based off movement of right wheel
+void rise_r(float delta_phi, float delta_x_prime, float delta_y_prime){
+  phi_global = phi_global + delta_phi; 
+  x_global = x_global + delta_x_prime; //x and y are global change vs in reference 
+  y_global = y_global + delta_y_prime; //to robot
+  printGlobalPosition();
+}
+
+//update global position based off movement of left wheel
+void rise_l(float phi, float delta_x_prime, float delta_y_prime){
+  phi_global = phi_global - phi; 
+  x_global = x_global + delta_x_prime; 
+  y_global = y_global - delta_y_prime; 
+  printGlobalPosition();
+}
+/* 
+ * end section for analytical method of obtaining x, y, theta_z 
+ */
+
+
+/*
+ * begin matrix method section for x, y, theta-z
+ */
+  void matrix_l(){
+    T = T*l_rot*l_trans;      
+      
   }
-  lastState = state; //update last state
-  */
-  currentAngle += currentDirection*2*degrees_per_tick; //calculate angle traveled
-  Serial.print("Calculated angle ");
-  Serial.println(currentAngle);
-  if((4*degrees_per_tick + desiredPosition) >= currentAngle && currentAngle >= (desiredPosition - 4*degrees_per_tick))
-      {
-        setVelocity(0); 
-        Serial.println("Stop");
- 
-      } 
-  tock = millis();
-}  
 
+  void matrix_r(){
+    T = T*r_rot*r_trans; 
+  };
+ /*  
+  * end matrix ethod for x, y, theta_z 
+  */
+  
 int setSpeed(float s){
   if(s > 1.0) s = 1.0; 
   if(s < 0.0) s = 0.0; 
