@@ -10,6 +10,7 @@
 #define angleTolerance 10 //+- five degrees
 #define rotate_speed 0.4
 
+#define pi 3.14159
 
 #define threshold_jerk  0.3
 LSM303 imu;
@@ -28,7 +29,7 @@ void setup() {
 
 void moveToAngle(float targetAngle){ //angle should be given in radians 
   imu.read(); 
-  double currentAngle = 1/tan(imu.m.y/imu.m.x)*(180.0/math.pi); //convert to degrees
+  double currentAngle = 1/tan(imu.m.y/imu.m.x)*(180.0/pi); //convert to degrees
   int difference = targetAngle - currentAngle; 
   
   while(difference > angleTolerance){
@@ -43,13 +44,13 @@ void setAngle(double desiredAngle){ //angle assumed to be received in degrees
   int rotations = (int) desiredAngle / 360; 
   rotate(rotations); 
   int angle = (int) desiredAngle%360;
-  double angleInRad = desiredAngle*(math.pi/180.0); 
+  double angleInRad = desiredAngle*(pi/180.0); 
   moveToAngle(angleInRad);
   
 }
 void loop() {
   // put your main code here, to run repeatedly:
-  if(Serial.avaiable()){
+  if(Serial.available()){
     
   }
 }
