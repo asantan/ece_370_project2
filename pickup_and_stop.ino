@@ -15,6 +15,18 @@ bool pickedup = false;
 
 void setup(){
   Serial.begin(9600);
+  Wire.begin();
+  imu.init();
+  imu.enableDefault();
+  imu.read();
+  oldimu_y = (double) imu.a.y*0.061/1000.0; 
+  pinMode(MOTOR1_PINA, OUTPUT); 
+  pinMode(MOTOR1_PINB, OUTPUT);
+  pinMode(MOTOR2_PINA, OUTPUT); 
+  pinMode(MOTOR2_PINB, OUTPUT); 
+  analogWrite(MOTOR1_PINA, 0);
+  analogWrite(MOTOR1_PINA, 0);
+  analogWrite(MOTOR2_PINB, 0);
 }
 
 int setSpeed(float s){}
