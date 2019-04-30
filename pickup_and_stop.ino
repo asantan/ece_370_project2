@@ -63,6 +63,14 @@ float s = velocity;
   }
 }
 
-void checkIMU(){}
+void checkIMU(){
+  imu.read();
+  double changeIn = (double)imu.a.y*0.061/1000.0;
+  double jerk = abs(oldimu_y - changeIn);
+  if(jerk > threshold_jerk){
+    Serial.println("Pickup detected");
+    pickedup = true; 
+  }
+}
 
 void loop(){}
