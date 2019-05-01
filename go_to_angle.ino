@@ -82,26 +82,32 @@ void moveToAngle(int targetAngle){ //angle should be given in degrees
   Serial.print(mod_diff);
   Serial.print(" Current Angle: ");
   Serial.println(currentAngle);
-  
-  while(error > angleTolerance){
+  Serial.print(" Distance to target ");
+  Serial.println(dist);
+  while(dist > angleTolerance){
     
-    if(mod_diff >= 180.0){//counterclockwise
+    if(mod_diff > 180.0){//clockwise
+      imu.read(); 
+      dist = mod_diff;  
       setAngularVelocity(rotate_speed);
     }
     else{ //clockwise
-      Serial.println("Counterclockwise");
+      imu.read();
+      dist = targetAngle - imu.heading(); 
       setAngularVelocity(-rotate_speed);
     }
-    imu.read(); 
-    currentAngle = imu.heading(); //convert to degrees
-    error = (currentAngle > targetAngle) ? currentAngle - targetAngle : targetAngle - currentAngle; 
     mod_diff = (int)error % 360; // %make error between 0 (inclusive) and 360.0 (exclusive)
-    dist = mod_diff > 180.0 ? 360.0 - mod_diff: mod_diff; //for rollovers
     Serial.print("Current Angle: ");
-    Serial.print(currentAngle);
+    imu.read();
+    
+    Serial.print(imu.heading());
     Serial.print(" Error: ");
     Serial.println(error);
+    Serial.print(" Distance to target ");
+    Serial.println(dist);
   }
+  Serial.print(" Final Error: ");
+  Serial.println(error);
   motorsOff(); 
   
 }
