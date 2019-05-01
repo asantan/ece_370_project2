@@ -7,7 +7,7 @@
 #define MOTOR2_PINA 9 
 #define MOTOR2_PINB 5 
 
-#define angleTolerance 15 //+- degrees
+#define angleTolerance 10 //+- degrees
 #define rotate_speed 0.3
 
 #define Kp  2
@@ -17,8 +17,6 @@
 
 LSM303 imu;
 LSM303::vector<int16_t> running_min = {32767, 32767, 32767}, running_max = {-32768, -32768, -32768};
-double oldimu_y; 
-double current_angle = 0; 
 const double toGauss = 0.061/1000.0; 
 
 void setup() {
@@ -28,7 +26,6 @@ void setup() {
   imu.init();
   imu.enableDefault();
   imu.read();
-  oldimu_y = (double)imu.a.y*0.061/1000.0;
 }
 
 void motorsetup(){
@@ -68,60 +65,56 @@ void setAngularVelocity(float velocity){
   }
 }
 
-
-void moveToAngle(double targetAngle){ //angle should be given in degrees 
-  imu.read();
-  double rawDiff =  
-  double currentAngle = (((double)imu.m.x)*toGauss*(180.0/pi));; //convert to degrees
-  int error = targetAngle - currentAngle;
-  Serial.print(" Initial Actual Angle: ");
-  Serial.print(currentAngle);
-  Serial.print(" Initial Calculated error: ");
-  Serial.print(error); 
-  Serial.print(" Angle tolerance: "); 
-  Serial.println(angleTolerance);
-  while(abs(error) > angleTolerance){
-    Serial.print("Target Angle: ");
-    Serial.print(targetAngle); 
-    Serial.print(" Actual Angle: ");
-    Serial.print(currentAngle);
-    Serial.print(" Calculated errror: ");
-    Serial.println(error); 
-    
-    if(error > 0){ //move clockwise
-      Serial.println("Positive error");
-      setAngularVelocity(rotate_speed); 
-    }
-    else{ //move counterclockwise
-      setAngularVelocity(-rotate_speed); 
-    }
-    imu.read();
-    currentAngle = ((double)imu.m.x*toGauss*(180.0/pi)); //to degrees
-    error = currentAngle - targetAngle;
-  }
-  Serial.println("Target angle reached"); 
-  Serial.print("Final Actual Angle: ");
-  Serial.print(currentAngle);
-  Serial.print(" Final 0Calculated errror: ");
-  Serial.println(error); 
+void motorsOff(){
   analogWrite(MOTOR1_PINA, 0);
   analogWrite(MOTOR1_PINB, 0);
-  analogWrite(MOTOR2_PINB, 0);
   analogWrite(MOTOR2_PINA, 0);
+  analogWrite(MOTOR2_PINB, 0);
 }
 
-void setAngle(double desiredAngle){ //angle assumed to be received in degrees
-  //int rotations = (int) desiredAngle / 360; 
-  //rotate(rotations);
-  moveToAngle(desiredAngle);
+void moveToAngle(int targetAngle){ //angle should be given in degrees 
+  imu.read(); 
+  double currentAngle = imu.heading(); //convert to degrees
+  double error = (currentAngle > targetAngle) ? currentAngle - targetAngle : targetAngle - currentAngle; 
+  int mod_diff = (int)error % 360; // %make error between 0 (inclusive) and 360.0 (exclusive)
+  double dist = mod_diff > 180.0 ? 360.0 - mod_diff: mod_diff; //for rollovers
+  Serial.print("Mod_diff: ");
+  Serial.print(mod_diff);
+  Serial.print(" Current Angle: ");
+  Serial.println(currentAngle);
+  
+  while(error > angleTolerance){
+    
+    if(mod_diff >= 180.0){//counterclockwise
+      setAngularVelocity(rotate_speed);
+    }
+    else{ //clockwise
+      Serial.println("Counterclockwise");
+      setAngularVelocity(-rotate_speed);
+    }
+    imu.read(); 
+    currentAngle = imu.heading(); //convert to degrees
+    error = (currentAngle > targetAngle) ? currentAngle - targetAngle : targetAngle - currentAngle; 
+    mod_diff = (int)error % 360; // %make error between 0 (inclusive) and 360.0 (exclusive)
+    dist = mod_diff > 180.0 ? 360.0 - mod_diff: mod_diff; //for rollovers
+    Serial.print("Current Angle: ");
+    Serial.print(currentAngle);
+    Serial.print(" Error: ");
+    Serial.println(error);
+  }
+  motorsOff(); 
   
 }
+
 void loop() {
   // put your main code here, to run repeatedly:
   while(Serial.available()){
     int desiredAngle = Serial.parseInt();
+    imu.read();
+    Serial.print("Angle when recv ");
+    Serial.println(imu.heading());
     Serial.print("Received angle ");
     Serial.println(desiredAngle);
-    setAngle(desiredAngle); 
+    moveToAngle(desiredAngle); 
   }
 }
