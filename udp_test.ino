@@ -38,7 +38,7 @@ void APsetup(){
   
   // print the network name (SSID);
   Serial.print("Creating access point named: ");
-  Serial.println(ssid);
+  Serial.println(ssid, wifi_channel);
 
   status = WiFi.beginAP(ssid);
   if (status != WL_AP_LISTENING) {
@@ -50,9 +50,9 @@ void APsetup(){
   delay(10000);
   //start web server on port 80
   server.begin();
-  Serial.print("\nListening for UDP packets on port ");
-  Serial.println(UDP_PORT_LISTEN); 
-  Udp.begin(UDP_PORT_LISTEN);
+  //Serial.print("\nListening for UDP packets on port ");
+  //Serial.println(UDP_PORT_LISTEN); 
+  //Udp.begin(UDP_PORT_LISTEN);
   printWiFiStatus(); 
 }
 
@@ -131,6 +131,7 @@ void loop() {
         else if (c != '\r') {    // if you got anything else but a carriage return character,
           currentLine += c;      // add it to the end of the currentLine
         }
+
       }
     }
     // close the connection:
