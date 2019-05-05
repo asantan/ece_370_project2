@@ -1,4 +1,5 @@
 #include <WiFi101.h>
+#include <WiFiUdp.h>
 #include "secrets.h"
 
 #define MOTOR1_PINA 10
@@ -28,13 +29,13 @@ void APsetup(){
 
   // by default the local IP address of will be 192.168.1.1
   // you can override it with the following:
-  WiFi.config(IPAddress(10, 0, 0, 30));
+  //WiFi.config(IPAddress(10, 0, 0, 30));
   
   // print the network name (SSID);
   Serial.print("Creating access point named: ");
   Serial.println(ssid);
 
-  status = WiFi.beginAP(ssid);
+  status = WiFi.beginAP(ssid, pass, 1);
   if (status != WL_AP_LISTENING) {
     Serial.println("Creating access point failed");
     // don't continue
@@ -58,6 +59,27 @@ void motorsetup(){
   analogWrite(MOTOR2_PINB, 0);
 }
 
+void udpsetup(){
+  while(!Serial){}
+  if(WiFi.status() == WL_NO_SHIELD){
+    Serial.println("WiFi shield not present"); 
+    //stop program
+    while(true); 
+  }
+
+  while(status != WL_CONNECTED){
+    Serial.println("Attempting to connect to SSID: ");   
+    Serial.println(ssid);
+    status = WiFi.begin(ssid, pass);
+    delay(100000); //delay 10 seconds
+  }
+
+  Serial.println("Connected to WiFi");
+  printWiFiStatus();
+
+  Serial.println("\nStarting connection to server...");
+  Udp.begin(UDP_PORT_LISTEN);
+}
 void loop() {
   // compare the previous status to the current status
   if (status != WiFi.status()) {
