@@ -13,6 +13,11 @@ char pass[] = SECRET_PASS;  //network password
 int status = WL_IDLE_STATUS; 
 WiFiServer server(80); 
 
+WiFiUDP Udp; 
+
+char packetBuffer[255]; //buffer to hold incoming packet
+char  ReplyBuffer[] = "acknowledged";       // a string to send back
+
 void setup() {
   Serial.begin(9600);
   motorsetup();
@@ -35,7 +40,7 @@ void APsetup(){
   Serial.print("Creating access point named: ");
   Serial.println(ssid);
 
-  status = WiFi.beginAP(ssid, pass, 1);
+  status = WiFi.beginAP(ssid);
   if (status != WL_AP_LISTENING) {
     Serial.println("Creating access point failed");
     // don't continue
@@ -45,6 +50,9 @@ void APsetup(){
   delay(10000);
   //start web server on port 80
   server.begin();
+  Serial.print("\nListening for UDP packets on port ");
+  Serial.println(UDP_PORT_LISTEN); 
+  Udp.begin(UDP_PORT_LISTEN);
   printWiFiStatus(); 
 }
 
@@ -57,28 +65,6 @@ void motorsetup(){
   analogWrite(MOTOR1_PINA, 0);
   analogWrite(MOTOR2_PINB, 0);
   analogWrite(MOTOR2_PINB, 0);
-}
-
-void udpsetup(){
-  while(!Serial){}
-  if(WiFi.status() == WL_NO_SHIELD){
-    Serial.println("WiFi shield not present"); 
-    //stop program
-    while(true); 
-  }
-
-  while(status != WL_CONNECTED){
-    Serial.println("Attempting to connect to SSID: ");   
-    Serial.println(ssid);
-    status = WiFi.begin(ssid, pass);
-    delay(100000); //delay 10 seconds
-  }
-
-  Serial.println("Connected to WiFi");
-  printWiFiStatus();
-
-  Serial.println("\nStarting connection to server...");
-  Udp.begin(UDP_PORT_LISTEN);
 }
 void loop() {
   // compare the previous status to the current status
@@ -145,7 +131,6 @@ void loop() {
         else if (c != '\r') {    // if you got anything else but a carriage return character,
           currentLine += c;      // add it to the end of the currentLine
         }
-
       }
     }
     // close the connection:
